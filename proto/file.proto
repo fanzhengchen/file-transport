@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package proto;
+
+
+message FileMeta {
+  string filename = 1;
+  string path = 2;
+  int64 fileSize = 3;
+  int64 chunkSize = 4;
+  int64 offset = 5;
+  string md5 = 6;
+  string sha1 = 7;
+}
+
+message File {
+  FileMeta fileMeta = 1;
+  bytes content = 2;
+}
+
+message FilePutRequest {
+  FileMeta fileMeta = 1;
+}
+
+message FilePutResponse {
+  FileMeta fileMeta = 1;
+  bool ack = 2;
+}
+
+message FileGetRequest {
+  FileMeta fileMeta = 1;
+}
+
+message FileGetResponse {
+  FileMeta fileMeta = 1;
+  bool ack = 2;
+}
+
+message ChunkPutRequest {
+  FileMeta fileMeta = 1;
+  bytes content = 2;
+}
+
+message ChunkPutResponse {
+  FileMeta fileMeta = 1;
+  bool ack = 2;
+}
+
+message ChunkGetRequest {
+  FileMeta fileMeta = 1;
+}
+
+message ChunkGetResponse {
+  FileMeta fileMeta = 1;
+  bytes content = 2;
+}
+
+
+service fileTransferService {
+  rpc put(FilePutRequest) returns (FilePutResponse);
+
+  rpc get(FileGetRequest) returns (FileGetResponse);
+
+  rpc putChunk(ChunkPutRequest) returns (ChunkPutResponse);
+
+  rpc getChunk(ChunkGetRequest) returns (ChunkGetResponse);
+}
