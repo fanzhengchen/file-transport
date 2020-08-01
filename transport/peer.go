@@ -1,4 +1,4 @@
-package grpc
+package transport
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"path"
-	"sync"
 )
 
 type CreateFileAction struct {
@@ -22,17 +21,14 @@ type ReadFileAction struct {
 
 
 type Peer struct {
-	fileRWMutex 		sync.RWMutex
-	filePutChannel      chan CreateFileAction
-	fileReadConcurrency int32
-	bufferSize			int32
+	FilePutChannel      chan CreateFileAction
 }
 
-func (peer *Peer) createFileIfNotExists() {
+func (peer *Peer) CreateFileIfNotExists() {
 	var action CreateFileAction
 	for {
 		select {
-		case action = <-peer.filePutChannel:
+		case action = <-peer.FilePutChannel:
 			fileMetaData := action.fileMeta
 			fileName := fileMetaData.Filename
 			filePath := fileMetaData.Path
@@ -61,7 +57,7 @@ func (peer *Peer) Put(ctx context.Context, request *proto.FilePutRequest) (*prot
 		done: make(chan bool, 1),
 	}
 
-	peer.filePutChannel <- action
+	peer.FilePutChannel <- action
 
 	//阻塞直到返回 go routine类似于 thread 阻塞的时候我们让出cpu, 切换不会导致 futex api(linux)之类的系统调用
 	ack := <- action.done
