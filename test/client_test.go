@@ -16,6 +16,7 @@ import (
 
 const (
 	port = 4040
+	chunkSize = 2 << 20
 )
 
 func createServer()  {
@@ -123,12 +124,13 @@ func TestPutFile(t *testing.T) {
 
 func TestGetFile (t *testing.T)  {
 	//go createServer()
-
-	filename := "jdk-8u261-linux-x64.tar.gz"
-	filepath := "/home/mark/Downloads"
+	//C:\Users\Administrator\Downloads\WXWork_3.0.26.2606.exe
+	filename := "WXWork_3.0.26.2606.exe"
+	filepath := "C:\\Users\\Administrator\\Downloads\\"
 	fileMeta := &proto.FileMeta{
 		Filename: filename,
 		Path: filepath,
+		ChunkSize: 1 << 20,
 	}
 
 	req := &proto.FileGetRequest{
@@ -139,8 +141,6 @@ func TestGetFile (t *testing.T)  {
 
 	resp, err := client.Get(context.TODO(), req)
 	fmt.Println(resp, err)
-
-
 }
 
 

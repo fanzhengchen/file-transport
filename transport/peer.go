@@ -3,6 +3,7 @@ package transport
 import (
 	"context"
 	"file-transport/proto"
+	"file-transport/util"
 	"log"
 	"os"
 	"path"
@@ -72,11 +73,23 @@ func (peer *Peer) Get(ctx context.Context, request *proto.FileGetRequest) (*prot
 	fileMeta := request.FileMeta
 	absolutePath := path.Join(fileMeta.Path, fileMeta.Filename)
 	fileInfo, err := os.Stat(absolutePath)
-	fileMeta.Offset = 0
-	fileMeta.FileSize = fileInfo.Size()
 	fileGetResponse := &proto.FileGetResponse{
 		FileMeta: fileMeta,
 	}
+	//文件打开有问题 比如文件不存在 拼写错误啥的
+	if err != nil {
+		return fileGetResponse, err
+	}
+	md5, err := util.GetFileMd5(absolutePath)
+	sha1,  err:= util.GetFileSha1(absolutePath)
+
+	fileMeta.Md5 = md5
+	fileMeta.Sha1 = sha1
+	fileMeta.Md5 = md5
+	fileMeta.Sha1 = sha1
+	fileMeta.Offset = 0
+	fileMeta.FileSize = fileInfo.Size()
+
 	if err != nil {
 		return fileGetResponse, err
 	}
