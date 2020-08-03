@@ -4,6 +4,7 @@ import (
 	"context"
 	"file-transport/proto"
 	"file-transport/transport"
+	"file-transport/util"
 	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -11,15 +12,16 @@ import (
 	"net"
 	"os"
 	"path"
+	"path/filepath"
 	"testing"
 )
 
 const (
-	port = 4040
-	chunkSize = 2 << 20
+	port      = 4040
+	ChunkSize = 2 << 20
 )
 
-func createServer()  {
+func createServer() {
 	address := fmt.Sprintf(":%d", port)
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
@@ -48,7 +50,7 @@ func createClient() proto.FileTransferServiceClient {
 	return client
 }
 
-func TestLaunchServer(t *testing.T)  {
+func TestLaunchServer(t *testing.T) {
 	createServer()
 }
 
@@ -122,26 +124,68 @@ func TestPutFile(t *testing.T) {
 	log.Print(response, err)
 }
 
-func TestGetFile (t *testing.T)  {
+func TestGetFile(t *testing.T) {
 	//go createServer()
-	//C:\Users\Administrator\Downloads\WXWork_3.0.26.2606.exe
 	filename := "WXWork_3.0.26.2606.exe"
-	filepath := "C:\\Users\\Administrator\\Downloads\\"
+	//filename := "test.txt"
+	serverFilePath := "C:\\Users\\Administrator\\Downloads\\"
 	fileMeta := &proto.FileMeta{
-		Filename: filename,
-		Path: filepath,
-		ChunkSize: 1 << 20,
+		Filename:  filename,
+		Path:      serverFilePath,
+		ChunkSize: ChunkSize,
 	}
 
 	req := &proto.FileGetRequest{
 		FileMeta: fileMeta,
 	}
 
+	localPath := "C:\\Users\\Administrator\\tmpdir"
+
 	client := createClient()
 
-	resp, err := client.Get(context.TODO(), req)
-	fmt.Println(resp, err)
+	fileGetResponse, err := client.Get(context.TODO(), req)
+	fmt.Println(fileGetResponse, err)
+
+	filesize := fileGetResponse.FileMeta.FileSize
+	fileMeta.FileSize = filesize
+
+	util.CreateFileIfNotExists(localPath, filename, filesize,  func(err error) {}, func(file *os.File, err error) {
+		if err == nil {
+			log.Println("file create successfully")
+		}
+	})
+
+	respFileMeta := fileGetResponse.FileMeta
+	chunkSize := respFileMeta.ChunkSize
+	numberOfChunks := (respFileMeta.FileSize + chunkSize - 1) / chunkSize
+	n := int(numberOfChunks)
+	offset := int64(0)
+
+	for i := 0; i < n; i++ {
+
+		size := chunkSize
+		if offset+chunkSize > fileMeta.FileSize {
+			size = fileMeta.FileSize - offset
+		}
+
+		fileMeta.Offset = offset
+		fileMeta.ChunkSize = size
+
+		chunkGetRequest := &proto.ChunkGetRequest{
+			FileMeta: fileMeta,
+		}
+		resp, err := client.GetChunk(context.TODO(), chunkGetRequest)
+		fmt.Println(resp.FileMeta, err)
+
+
+		absolutePath := filepath.Join(localPath, filename)
+		file, err := os.OpenFile(absolutePath, os.O_RDWR , os.ModePerm)
+		if resp == nil {
+			log.Fatalf("offset %d %d", offset, chunkSize)
+		}
+		content := resp.Content
+		_, err = file.WriteAt(content, offset)
+		file.Close()
+		offset += chunkSize
+	}
 }
-
-
-

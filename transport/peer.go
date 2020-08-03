@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 )
 
 type CreateFileAction struct {
@@ -71,7 +72,7 @@ func (peer *Peer) Put(ctx context.Context, request *proto.FilePutRequest) (*prot
 
 func (peer *Peer) Get(ctx context.Context, request *proto.FileGetRequest) (*proto.FileGetResponse, error) {
 	fileMeta := request.FileMeta
-	absolutePath := path.Join(fileMeta.Path, fileMeta.Filename)
+	absolutePath := filepath.Join(fileMeta.Path, fileMeta.Filename)
 	fileInfo, err := os.Stat(absolutePath)
 	fileGetResponse := &proto.FileGetResponse{
 		FileMeta: fileMeta,
@@ -123,7 +124,7 @@ func (peer *Peer) PutChunk(ctx context.Context, request *proto.ChunkPutRequest) 
 
 func (peer *Peer) GetChunk(ctx context.Context, request *proto.ChunkGetRequest) (*proto.ChunkGetResponse, error) {
 	fileMeta := request.FileMeta
-	absolutePath := path.Join(fileMeta.Path, fileMeta.Filename)
+	absolutePath := filepath.Join(fileMeta.Path, fileMeta.Filename)
 	_, err := os.Stat(absolutePath)
 
 	if err != nil {
@@ -131,17 +132,18 @@ func (peer *Peer) GetChunk(ctx context.Context, request *proto.ChunkGetRequest) 
 	}
 
 	file, err := os.Open(absolutePath)
-	file.Seek(fileMeta.Offset, 0)
-
-	content := make([]byte, fileMeta.ChunkSize)
-	_, err = file.Write(content)
 
 	response := &proto.ChunkGetResponse{
 		FileMeta: fileMeta,
-		Content: content,
 	}
 	if err != nil {
 		return response, err
 	}
+	//log.Fatal("chunkSize offset {} {}", fileMeta.ChunkSize, fileMeta.Offset)
+	content := make([]byte, fileMeta.ChunkSize)
+	_, err = file.ReadAt(content, fileMeta.Offset)
+	defer file.Close()
+	response.Content = content
+
 	return response, nil
 }

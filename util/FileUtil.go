@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"io"
 	"os"
+	"path/filepath"
 )
 
 func GetFileMd5(filePath string) (string, error) {
@@ -52,5 +53,22 @@ func GetFileSha1(filePath string) (string, error) {
 	returnSHA1String = hex.EncodeToString(hashInBytes)
 
 	return returnSHA1String, nil
+
+}
+
+func CreateFileIfNotExists(location string, filename string, fileSize int64, handleCreateFileError func(err error),
+	handleTruncateResult func(file *os.File, err error))  {
+	absolutePath := filepath.Join(location, filename)
+	_, err := os.Stat(absolutePath)
+	if err != nil {
+		file, err := os.Create(absolutePath)
+		if err != nil {
+			handleCreateFileError(err)
+		} else {
+			err = file.Truncate(fileSize)
+			defer file.Close()
+			handleTruncateResult(file, err)
+		}
+	}
 
 }
