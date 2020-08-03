@@ -23,7 +23,7 @@ func main() {
 
 	flag.Parse()
 
-	address := fmt.Sprintf(":%d", port)
+	address := fmt.Sprintf(":%d", *port)
 	listener, err := net.Listen(*network, address)
 	if err != nil {
 		panic(err)
