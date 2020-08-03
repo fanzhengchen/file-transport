@@ -4,6 +4,7 @@ import (
 	"context"
 	"file-transport/proto"
 	"file-transport/transport"
+	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"log"
@@ -13,8 +14,13 @@ import (
 	"testing"
 )
 
+const (
+	port = 4040
+)
+
 func createServer()  {
-	listener, err := net.Listen("tcp", ":4040")
+	address := fmt.Sprintf(":%d", port)
+	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		panic(err)
 	}
@@ -32,6 +38,13 @@ func createServer()  {
 		panic(e)
 	}
 
+}
+
+func createClient() proto.FileTransferServiceClient {
+	target := fmt.Sprintf("localhost:%d", port)
+	conn, _ := grpc.Dial(target, grpc.WithInsecure())
+	client := proto.NewFileTransferServiceClient(conn)
+	return client
 }
 
 func TestLaunchServer(t *testing.T)  {
@@ -73,7 +86,7 @@ func TestPutFileIfNotExists(t *testing.T) {
 	log.Print(response, err)
 }
 
-func TestPutChunk(t *testing.T) {
+func TestPutFile(t *testing.T) {
 	//go createServer()
 	conn, err := grpc.Dial("localhost:4040", grpc.WithInsecure())
 	if err != nil {
@@ -106,6 +119,28 @@ func TestPutChunk(t *testing.T) {
 	}
 	response, err := client.Put(context.TODO(), req)
 	log.Print(response, err)
+}
+
+func TestGetFile (t *testing.T)  {
+	//go createServer()
+
+	filename := "jdk-8u261-linux-x64.tar.gz"
+	filepath := "/home/mark/Downloads"
+	fileMeta := &proto.FileMeta{
+		Filename: filename,
+		Path: filepath,
+	}
+
+	req := &proto.FileGetRequest{
+		FileMeta: fileMeta,
+	}
+
+	client := createClient()
+
+	resp, err := client.Get(context.TODO(), req)
+	fmt.Println(resp, err)
+
+
 }
 
 

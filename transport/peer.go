@@ -71,7 +71,9 @@ func (peer *Peer) Put(ctx context.Context, request *proto.FilePutRequest) (*prot
 func (peer *Peer) Get(ctx context.Context, request *proto.FileGetRequest) (*proto.FileGetResponse, error) {
 	fileMeta := request.FileMeta
 	absolutePath := path.Join(fileMeta.Path, fileMeta.Filename)
-	_, err := os.Stat(absolutePath)
+	fileInfo, err := os.Stat(absolutePath)
+	fileMeta.Offset = 0
+	fileMeta.FileSize = fileInfo.Size()
 	fileGetResponse := &proto.FileGetResponse{
 		FileMeta: fileMeta,
 	}
